@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Prediction</title>
+    <style>
+        #video {
+            width: 60%;
+            border: 2px solid black;
+        }
+        #result {
+            font-size: 24px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sign Language Prediction</h1>
+    <video id="video" autoplay></video>
+    <p id="result">Loading...</p>
+
+    <script>
+        const video = document.getElementById('video');
+        const result = document.getElementById('result');
+
+        // Access the webcam and display the video feed
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error('Error accessing webcam: ', err);
+            });
+
+        // Function to capture a frame from the video feed and send to server
+        function captureFrame() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('image', blob, 'frame.jpg');
+                fetch('/api/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    result.textContent = 'Predicted Letter: ' + data.predicted_label;
+                })
+                .catch(err => {
+                    console.error('Error during prediction: ', err);
+                });
+            }, 'image/jpeg');
+        }
+
+        // Capture frame every 2 seconds
+        setInterval(captureFrame, 2000);
+    </script>
+</body>
+</html>
